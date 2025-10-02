@@ -1,9 +1,22 @@
 import random
 import sys
 from collections import Counter
+from collections.abc import Mapping, MutableMapping
+from typing import cast
 
 
 def roll_dice(number_of_dice: int = 5) -> list[int]:
+    """Roll n dice with values between 1-6.
+
+    Args:
+        number_of_dice (int, optional): Number of dice to be rolled. Defaults to 5.
+
+    Raises:
+        ValueError: Raised if n is outside of the defined 1 to 5 boundary .
+
+    Returns:
+        list[int]: List containing the rolls of the dice.
+    """
     try:
         if not (1 <= number_of_dice <= 5):
             raise ValueError("Number of dice out of range")
@@ -15,7 +28,12 @@ def roll_dice(number_of_dice: int = 5) -> list[int]:
         sys.exit(1)
 
 
-def create_empty_scorecard() -> dict[str, None]:
+def create_empty_scorecard() -> dict[str, int | None]:
+    """Helper function to create an empty Yahtzee scorecard.
+
+    Returns:
+        dict[str, int | None]: Dictionary with keys for each score category, initialized to None.
+    """
     return {
         "ones": None,
         "twos": None,
@@ -34,6 +52,14 @@ def create_empty_scorecard() -> dict[str, None]:
 
 
 def select_keep(dice: list[int]) -> list[int]:
+    """Prompt user to select which dice to keep.
+
+    Args:
+        dice (list[int]): Current dice values.
+
+    Returns:
+        list[int]: List of dice values that the user wants to keep.
+    """
     print(dice)
     dice_counts: Counter[int] = Counter(dice)
     while not (
@@ -63,26 +89,51 @@ def select_keep(dice: list[int]) -> list[int]:
 
 
 def reroll(kept_dice: list[int]) -> list[int]:
+    """Reroll dice that weren't kept.
+
+    Args:
+        kept_dice (list[int]): Dice values that the user chose to keep.
+
+    Returns:
+        list[int]: New list of dice values after rerolling the non-kept dice.
+    """
     """Reroll dice that weren't kept."""
     return kept_dice + roll_dice(5 - len(kept_dice))
 
 
 def has_straight(dice: list[int], length: int) -> bool:
+    """Check for straights (sequences) in dice.
+
+    Args:
+        dice (list[int]): Current dice values.
+        length (int): Length of the straight to check for (4 or 5).
+
+    Returns:
+        bool: True if a straight of the specified length exists, False otherwise.
+    """
     sorted_dice: list[int] = sorted(dice)
     if length == 5:
         if sorted_dice == [1, 2, 3, 4, 5] or sorted_dice == [2, 3, 4, 5, 6]:
             return True
         return False
     if (
-        [1, 2, 3, 4] in sorted_dice
-        or [2, 3, 4, 5] in sorted_dice
-        or [3, 4, 5, 6] in sorted_dice
+        all(e in sorted_dice for e in [1, 2, 3, 4])
+        or all(e in sorted_dice for e in [2, 3, 4, 5])
+        or all(e in sorted_dice for e in [3, 4, 5, 6])
     ):
         return True
     return False
 
 
 def evaluate(dice: list[int]) -> dict[str, int]:
+    """Calculate scores for all possible categories based on current dice.
+
+    Args:
+        dice (list[int]): Current dice values.
+
+    Returns:
+        dict[str, int]: Dictionary with scores for each category based on the current dice.
+    """
     counts: Counter[int] = Counter(dice)
     total: int = sum(dice)
     len_most_common: int = counts.most_common(1)[0][1]
@@ -109,30 +160,70 @@ def evaluate(dice: list[int]) -> dict[str, int]:
     return scores
 
 
-def choose(scores: dict[str, None] | dict[str, int | None], used: list[str]):
-    """Present available scoring options to player and get their selection."""
+def choose(scores: Mapping[str, int], used: list[str]) -> tuple[str, int]:
+    """Present available scoring options to player and get their selection.
 
-    available_scores: list[str] = [k for k, v in scores.items() if v is None]
+    Returns:
+        tuple[str, int]: Chosen score category and its value.
+    """
+    available_scores: dict[str, int] = {
+        k: v for k, v in scores.items() if k not in used
+    }
 
     print("Available Scores")
-    for i, option in enumerate(available_scores):
-        print(f"{i + 1}. {option}")
+    for i, (k, v) in enumerate(available_scores.items()):
+        print(f"{i + 1}. {k}: {v}")
 
     while not (
         (chosen_score := input("Select an available scoring option: "))
         and chosen_score.isdigit()
-        and int(chosen_score) <= len(available_scores)
+        and 1 <= int(chosen_score) <= len(available_scores)
     ):
-        print("Invalid string.")
+        print("Invalid input.")
         print("Available Scores")
         for i, option in enumerate(available_scores):
             print(f"{i + 1}. {option}")
 
-    # chosen_score = int(input("Select the index of an available scoring option"))
-    # if 0 < chosen_score <= len(scores):
-    #     return scores.keys()[chosen_score]
-    # if chosen_score == 0:
-    #     return False
+    used_score: tuple[str, int] = tuple(available_scores.items())[
+        int(chosen_score) - 1
+    ]
+    used.append(used_score[0])
+    return used_score
 
 
-choose(create_empty_scorecard(), [])
+def display_scorecard(
+    card: Mapping[str, int | None],
+) -> None:
+    """Display current scorecard with all categories and their scores.
+
+    Args:
+        card (Mapping[str, int | None]): Current scorecard.
+    """
+    for k, v in card.items():
+        print(f"{k}: {v if v is not None else '-'}")
+
+
+def play_round(card: MutableMapping[str, int | None]) -> dict[str, int | None]:
+    """Play one round of Yahtzee with 3 rolls.
+
+    Args:
+        card (Mapping[str, int | None]): Current scorecard.
+    """
+    """Play one round of Yahtzee with 3 rolls."""
+    dice: list[int] = roll_dice()
+
+    for _ in range(3):
+        kept_dice: list[int] = select_keep(dice)
+
+        if len(kept_dice) == 5:
+            break
+
+        dice = reroll(kept_dice)
+
+    new_score: tuple[str, int] = choose(
+        evaluate(dice), [k for k, v in card.items() if v is not None]
+    )
+
+    card[new_score[0]] = new_score[1]
+
+    return cast(dict[str, int | None], card)

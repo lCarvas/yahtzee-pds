@@ -6,8 +6,3 @@ requires-python = ">=3.13"
 name = "pds-yahtzee"
 version = "0.1.0"
 source = { virtual = "." }
-
-[package.metadata]
-
-[package.metadata.requires-dev]
-dev = []

@@ -1,7 +1,7 @@
 import random
 import sys
 from collections import Counter
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping, Sequence
 from typing import cast
 
 
@@ -51,7 +51,7 @@ def create_empty_scorecard() -> dict[str, int | None]:
     }
 
 
-def select_keep(dice: list[int]) -> list[int]:
+def select_keep(dice: Sequence[int]) -> list[int]:
     """Prompt user to select which dice to keep.
 
     Args:
@@ -79,6 +79,7 @@ def select_keep(dice: list[int]) -> list[int]:
             and str_counts["5"] <= dice_counts[5]
             and str_counts["6"] <= dice_counts[6]
         )
+        or len(dice_to_keep_string) == 0
     ):
         print("Invalid string.")
         print(dice)
@@ -101,7 +102,7 @@ def reroll(kept_dice: list[int]) -> list[int]:
     return kept_dice + roll_dice(5 - len(kept_dice))
 
 
-def has_straight(dice: list[int], length: int) -> bool:
+def has_straight(dice: Sequence[int], length: int) -> bool:
     """Check for straights (sequences) in dice.
 
     Args:
@@ -125,7 +126,7 @@ def has_straight(dice: list[int], length: int) -> bool:
     return False
 
 
-def evaluate(dice: list[int]) -> dict[str, int]:
+def evaluate(dice: Sequence[int]) -> dict[str, int]:
     """Calculate scores for all possible categories based on current dice.
 
     Args:
@@ -138,6 +139,7 @@ def evaluate(dice: list[int]) -> dict[str, int]:
     total: int = sum(dice)
     len_most_common: int = counts.most_common(1)[0][1]
     full_house_check: list[tuple[int, int]] = counts.most_common(2)
+    has_lg_straight: bool = has_straight(dice, 5)
 
     scores: dict[str, int] = {
         "ones": counts[1],
@@ -151,8 +153,8 @@ def evaluate(dice: list[int]) -> dict[str, int]:
         "full_house": 25
         if full_house_check[0][1] == 3 and full_house_check[1][1] == 2
         else 0,
-        "four_straight": 30 if has_straight(dice, 4) else 0,
-        "five_straight": 40 if has_straight(dice, 5) else 0,
+        "four_straight": 30 if has_lg_straight or has_straight(dice, 4) else 0,
+        "five_straight": 40 if has_lg_straight else 0,
         "yahtzee": 50 if len_most_common == 5 else 0,
         "chance": total,
     }
@@ -160,7 +162,7 @@ def evaluate(dice: list[int]) -> dict[str, int]:
     return scores
 
 
-def choose(scores: Mapping[str, int], used: list[str]) -> tuple[str, int]:
+def choose(scores: Mapping[str, int], used: Sequence[str]) -> tuple[str, int]:
     """Present available scoring options to player and get their selection.
 
     Returns:
@@ -187,7 +189,7 @@ def choose(scores: Mapping[str, int], used: list[str]) -> tuple[str, int]:
     used_score: tuple[str, int] = tuple(available_scores.items())[
         int(chosen_score) - 1
     ]
-    used.append(used_score[0])
+
     return used_score
 
 
@@ -199,6 +201,7 @@ def display_scorecard(
     Args:
         card (Mapping[str, int | None]): Current scorecard.
     """
+    print("Current Scorecard")
     for k, v in card.items():
         print(f"{k}: {v if v is not None else '-'}")
 
@@ -212,7 +215,7 @@ def play_round(card: MutableMapping[str, int | None]) -> dict[str, int | None]:
     """Play one round of Yahtzee with 3 rolls."""
     dice: list[int] = roll_dice()
 
-    for _ in range(3):
+    for _ in range(2):
         kept_dice: list[int] = select_keep(dice)
 
         if len(kept_dice) == 5:
@@ -220,6 +223,7 @@ def play_round(card: MutableMapping[str, int | None]) -> dict[str, int | None]:
 
         dice = reroll(kept_dice)
 
+    print(f"Final dice: {dice}")
     new_score: tuple[str, int] = choose(
         evaluate(dice), [k for k, v in card.items() if v is not None]
     )

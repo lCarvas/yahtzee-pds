@@ -1,6 +1,6 @@
 from typing import cast
 
-from .yahtzee import create_empty_scorecard, display_scorecard, play_round
+from yahtzee import create_empty_scorecard, display_scorecard, play_round
 
 
 def main() -> None:

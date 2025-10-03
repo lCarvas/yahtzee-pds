@@ -62,31 +62,33 @@ def select_keep(dice: Sequence[int]) -> list[int]:
     """
     print(dice)
     dice_counts: Counter[int] = Counter(dice)
-    while not (
-        (
-            dice_to_keep_string := input(
-                "Select which dice to keep. This should be a string with the value of the dice you want to keep: "
-            )
-        )
-        and dice_to_keep_string.isdigit()
-        and len(dice_to_keep_string) <= 5
-        and (
-            (str_counts := (Counter([i for i in dice_to_keep_string])))["1"]
-            <= dice_counts[1]
-            and str_counts["2"] <= dice_counts[2]
-            and str_counts["3"] <= dice_counts[3]
-            and str_counts["4"] <= dice_counts[4]
-            and str_counts["5"] <= dice_counts[5]
-            and str_counts["6"] <= dice_counts[6]
-        )
-        or len(dice_to_keep_string) == 0
-    ):
-        print("Invalid string.")
-        print(dice)
 
-    kept_dice: list[int] = [int(i) for i in dice_to_keep_string]
+    while True:
+        dice_to_keep_string: str = input(
+            "Select which dice to keep. This should be a string with the value of the dice you want to keep: "
+        ).strip()
 
-    return kept_dice
+        if dice_to_keep_string == "":
+            return []
+
+        if not dice_to_keep_string.isdigit():
+            print("Invalid string.")
+            continue
+
+        if not len(dice_to_keep_string) <= 5:
+            print("Invalid string.")
+            continue
+
+        kept_dice: list[int] = [int(i) for i in dice_to_keep_string]
+
+        kept_dice_counts: Counter[int] = Counter(kept_dice)
+
+        for face, count in kept_dice_counts.items():
+            if count > dice_counts[int(face)]:
+                print("Invalid string")
+                break
+        else:
+            return kept_dice
 
 
 def reroll(kept_dice: list[int]) -> list[int]:
@@ -137,8 +139,8 @@ def evaluate(dice: Sequence[int]) -> dict[str, int]:
     """
     counts: Counter[int] = Counter(dice)
     total: int = sum(dice)
-    len_most_common: int = counts.most_common(1)[0][1]
-    full_house_check: list[tuple[int, int]] = counts.most_common(2)
+    two_most_common_dice_faces: list[tuple[int, int]] = counts.most_common(2)
+    count_most_common: int = two_most_common_dice_faces[0][1]
     has_lg_straight: bool = has_straight(dice, 5)
 
     scores: dict[str, int] = {
@@ -148,14 +150,15 @@ def evaluate(dice: Sequence[int]) -> dict[str, int]:
         "fours": counts[4] * 4,
         "fives": counts[5] * 5,
         "sixes": counts[6] * 6,
-        "three_of_a_kind": total if len_most_common == 3 else 0,
-        "four_of_a_kind": total if len_most_common == 4 else 0,
+        "three_of_a_kind": total if count_most_common == 3 else 0,
+        "four_of_a_kind": total if count_most_common == 4 else 0,
         "full_house": 25
-        if full_house_check[0][1] == 3 and full_house_check[1][1] == 2
+        if two_most_common_dice_faces[0][1] == 3
+        and two_most_common_dice_faces[1][1] == 2
         else 0,
         "four_straight": 30 if has_lg_straight or has_straight(dice, 4) else 0,
         "five_straight": 40 if has_lg_straight else 0,
-        "yahtzee": 50 if len_most_common == 5 else 0,
+        "yahtzee": 50 if count_most_common == 5 else 0,
         "chance": total,
     }
 
@@ -172,25 +175,26 @@ def choose(scores: Mapping[str, int], used: Sequence[str]) -> tuple[str, int]:
         k: v for k, v in scores.items() if k not in used
     }
 
-    print("Available Scores")
-    for i, (k, v) in enumerate(available_scores.items()):
-        print(f"{i + 1}. {k}: {v}")
-
-    while not (
-        (chosen_score := input("Select an available scoring option: "))
-        and chosen_score.isdigit()
-        and 1 <= int(chosen_score) <= len(available_scores)
-    ):
-        print("Invalid input.")
+    while True:
         print("Available Scores")
-        for i, option in enumerate(available_scores):
-            print(f"{i + 1}. {option}")
+        for i, (k, v) in enumerate(available_scores.items()):
+            print(f"{i + 1}. {k}: {v}")
 
-    used_score: tuple[str, int] = tuple(available_scores.items())[
-        int(chosen_score) - 1
-    ]
+        chosen_category = input("Select an available scoring option: ")
 
-    return used_score
+        if not chosen_category.isdigit():
+            print("Invalid input.")
+            continue
+
+        if int(chosen_category) not in range(1, len(available_scores) + 1):
+            print("Invalid input.")
+            continue
+
+        chosen_score: tuple[str, int] = tuple(available_scores.items())[
+            int(chosen_category) - 1
+        ]
+
+        return chosen_score
 
 
 def display_scorecard(

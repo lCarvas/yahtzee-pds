@@ -55,7 +55,7 @@ def select_keep(dice: Sequence[int]) -> list[int]:
     """Prompt user to select which dice to keep.
 
     Args:
-        dice (list[int]): Current dice values.
+        dice (Sequence[int]): Current dice values.
 
     Returns:
         list[int]: List of dice values that the user wants to keep.
@@ -108,7 +108,7 @@ def has_straight(dice: Sequence[int], length: int) -> bool:
     """Check for straights (sequences) in dice.
 
     Args:
-        dice (list[int]): Current dice values.
+        dice (Sequence[int]): Current dice values.
         length (int): Length of the straight to check for (4 or 5).
 
     Returns:
@@ -132,7 +132,7 @@ def evaluate(dice: Sequence[int]) -> dict[str, int]:
     """Calculate scores for all possible categories based on current dice.
 
     Args:
-        dice (list[int]): Current dice values.
+        dice (Sequence[int]): Current dice values.
 
     Returns:
         dict[str, int]: Dictionary with scores for each category based on the current dice.
@@ -167,6 +167,10 @@ def evaluate(dice: Sequence[int]) -> dict[str, int]:
 
 def choose(scores: Mapping[str, int], used: Sequence[str]) -> tuple[str, int]:
     """Present available scoring options to player and get their selection.
+
+    Args:
+        scores (Mapping[str, int]): Scores for each category.
+        used (Sequence[str]): Score categories that have already been used.
 
     Returns:
         tuple[str, int]: Chosen score category and its value.
@@ -214,9 +218,11 @@ def play_round(card: MutableMapping[str, int | None]) -> dict[str, int | None]:
     """Play one round of Yahtzee with 3 rolls.
 
     Args:
-        card (Mapping[str, int | None]): Current scorecard.
+        card (MutableMapping[str, int | None]): Current scorecard.
+
+    Returns:
+        dict[str, int | None]: Updated scorecard after playing one round.
     """
-    """Play one round of Yahtzee with 3 rolls."""
     dice: list[int] = roll_dice()
 
     for _ in range(2):

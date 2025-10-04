@@ -66,7 +66,7 @@ def select_keep(dice: Sequence[int]) -> list[int]:
     while True:
         dice_to_keep_string: str = input(
             "Select which dice to keep. This should be a string with the value of the dice you want to keep: "
-        ).strip()
+        ).replace(" ", "")
 
         if dice_to_keep_string == "":
             return []
@@ -180,7 +180,7 @@ def choose(scores: Mapping[str, int], used: Sequence[str]) -> tuple[str, int]:
         for i, (k, v) in enumerate(available_scores.items()):
             print(f"{i + 1}. {k}: {v}")
 
-        chosen_category = input("Select an available scoring option: ")
+        chosen_category: str = input("Select an available scoring option: ")
 
         if not chosen_category.isdigit():
             print("Invalid input.")
